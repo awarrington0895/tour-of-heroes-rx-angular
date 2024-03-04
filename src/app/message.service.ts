@@ -1,23 +1,24 @@
 import { Injectable } from '@angular/core';
-import { RxState } from '@rx-angular/state';
+import { RxState, rxState } from '@rx-angular/state';
 import { Observable } from 'rxjs';
 
 @Injectable({ providedIn: 'root' })
 export class MessageService {
-  private state = new RxState<{ messages: string[] }>();
+
+  private initialState = () => ({ messages: [] });
+
+  private state = rxState<{ messages: string[] }>(({ set }) => {
+    set(this.initialState())
+  })
 
   messages$: Observable<string[]> = this.state.select('messages');
-
-  constructor() {
-    this.state.set({ messages: [] });
-  }
 
   add(message: string) {
     this.state.set('messages', (s) => [...s.messages, message]);
   }
 
   clear() {
-    this.state.set({ messages: [] });
+    this.state.set(this.initialState());
   }
 }
 

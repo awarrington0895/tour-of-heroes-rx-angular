@@ -7,8 +7,16 @@ import { MessagesComponent } from './messages/messages.component';
   selector: 'app-root',
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [RouterModule, MessagesComponent],
-  templateUrl: './app.component.html',
   styleUrls: ['./app.component.css'],
+  template: `
+  <h1>{{title}}</h1>
+  <nav>
+    <a routerLink="/dashboard">Dashboard</a>
+    <a routerLink="/heroes">Heroes</a>
+  </nav>
+  <router-outlet></router-outlet>
+  <app-messages></app-messages>
+  `
 })
 export class AppComponent {
   title = 'Tour of Heroes';

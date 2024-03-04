@@ -1,5 +1,5 @@
 import { AsyncPipe, NgForOf, NgIf } from '@angular/common';
-import { ChangeDetectionStrategy, Component } from '@angular/core';
+import { ChangeDetectionStrategy, Component, inject } from '@angular/core';
 import { MessageService } from '../message.service';
 
 @Component({
@@ -10,19 +10,21 @@ import { MessageService } from '../message.service';
   styleUrls: ['./messages.component.css'],
   template: `
   @if (messageService.messages$ | async; as messages) {
-    <h2>Messages</h2>
-    <button type="button" class="clear" (click)="messageService.clear()">
-      Clear messages
-    </button>
+    <div>
+      <h2>Messages</h2>
+      <button type="button" class="clear" (click)="messageService.clear()">
+        Clear messages
+      </button>
 
-    @for (message of messages; track $index) {
-      <div>{{message}}</div>
-    }
+      @for (message of messages; track $index) {
+        <div>{{message}}</div>
+      }
+    </div>
   }
   `
 })
 export class MessagesComponent {
-  constructor(public messageService: MessageService) { }
+  messageService = inject(MessageService);
 }
 
 /*
