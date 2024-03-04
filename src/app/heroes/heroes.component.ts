@@ -1,14 +1,14 @@
 import { NgForOf } from '@angular/common';
-import { ChangeDetectionStrategy, Component } from '@angular/core';
+import { ChangeDetectionStrategy, Component, inject } from '@angular/core';
 import { RouterModule } from '@angular/router';
 
 import { Hero } from '../hero';
 import { HeroService } from '../hero.service';
 import { filter, map, startWith, mergeMap, tap } from 'rxjs';
 import { RxFor } from '@rx-angular/template/for';
-import { RxState } from '@rx-angular/state';
-import { RxActionFactory } from '@rx-angular/state/actions';
-import { RxEffects } from '@rx-angular/state/effects';
+import { rxState } from '@rx-angular/state';
+import { rxActions } from '@rx-angular/state/actions';
+import { rxEffects } from '@rx-angular/state/effects';
 
 type HeroesActions = {
   delete: Hero;
@@ -20,23 +20,58 @@ type HeroesActions = {
   selector: 'app-heroes',
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [RouterModule, NgForOf, RxFor],
-  providers: [RxState, RxActionFactory, RxEffects],
-  templateUrl: './heroes.component.html',
   styleUrls: ['./heroes.component.css'],
+  template: `
+  <h2>My Heroes</h2>
+
+  <div>
+    <label for="new-hero">Hero name: </label>
+    <input id="new-hero" #heroName />
+  
+    <!-- (click) passes input value to add() and then clears the input -->
+    <button
+      type="button"
+      class="add-button"
+      (click)="actions.add(heroName.value); heroName.value = ''"
+    >
+      Add hero
+    </button>
+  </div>
+  
+  <ul class="heroes">
+    <li *rxFor="let hero of heroes$; trackBy: 'id'">
+      <a routerLink="/detail/{{ hero.id }}">
+        <span class="badge">{{ hero.id }}</span> {{ hero.name }}
+      </a>
+      <button
+        type="button"
+        class="delete"
+        title="delete hero"
+        (click)="actions.delete(hero)"
+      >
+        x
+      </button>
+    </li>
+  </ul>
+  
+  <!-- 
+  Copyright Google LLC. All Rights Reserved.
+  Use of this source code is governed by an MIT-style license that
+  can be found in the LICENSE file at https://angular.io/license
+  -->
+  `
 })
 export class HeroesComponent {
-  actions = this.factory.create();
 
-  heroes$ = this.state.select('heroes');
+  private readonly heroService = inject(HeroService);
 
-  constructor(
-    private heroService: HeroService,
-    private state: RxState<{ heroes: Hero[] }>,
-    private factory: RxActionFactory<HeroesActions>,
-    private effects: RxEffects
-  ) {
-    state.connect('heroes', this.heroService.getHeroes().pipe(startWith([])));
+  private readonly state = rxState<{ heroes: Hero[] }>(({ connect }) => {
+    connect('heroes', this.heroService.getHeroes().pipe(startWith([])));
+  })
 
+  readonly actions = rxActions<HeroesActions>();
+
+  readonly effects = rxEffects(({ register }) => {
     const addEffect$ = this.actions.add$.pipe(
       map((name) => name.trim()),
       filter(Boolean),
@@ -53,14 +88,11 @@ export class HeroesComponent {
       mergeMap((hero) => this.heroService.deleteHero(hero.id))
     );
 
-    this.effects.register(addEffect$);
+    register(addEffect$);
+    register(deleteEffect$);
+  });
 
-    this.effects.register(deleteEffect$);
-  }
-
-  trackHero(_idx: number, hero: Hero) {
-    return hero.id;
-  }
+  readonly heroes$ = this.state.select('heroes');
 }
 
 /*
