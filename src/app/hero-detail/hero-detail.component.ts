@@ -32,35 +32,40 @@ type DetailActions = {
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [NgIf, FormsModule, UpperCasePipe, RouterLink, AsyncPipe, RxPush],
   providers: [RxActionFactory],
-  templateUrl: './hero-detail.component.html',
   styleUrls: ['./hero-detail.component.css'],
+  template: `
+  <div *ngIf="hero$ | async as hero">
+    <h2>{{ hero.name | uppercase }} Details</h2>
+    <div><span>id: </span>{{ hero.id }}</div>
+    <div>
+      <label for="hero-name">Hero name: </label>
+      <input
+        id="hero-name"
+        [value]="name$ | push"
+        (input)="actions.nameUpdated($event)"
+        placeholder="Hero name"
+      />
+    </div>
+    <button type="button" (click)="actions.goBack()">go back</button>
+    <button type="button" (click)="actions.save()">save</button>
+  </div>
+  `
 })
 export class HeroDetailComponent {
-  private state = rxState<{ updatedHero: Hero }>();
-
-  private effects = rxEffects();
-
-  actions = this.factory.create({
-    nameUpdated: (e: Event) => (e.target as HTMLInputElement).value,
-  });
-
-  name$ = this.state.select('updatedHero', 'name');
-
   hero$ = defer(() => of(this.route.snapshot.paramMap.get('id')!)).pipe(
     map((id) => parseInt(id, 10)),
     switchMap((id) => this.heroService.getHero(id)),
     shareReplay({ refCount: true, bufferSize: 1 })
   );
 
-  constructor(
-    private route: ActivatedRoute,
-    private heroService: HeroService,
-    private location: Location,
-    private factory: RxActionFactory<DetailActions>
-  ) {
-    this.state.connect(this.hero$.pipe(map((hero) => ({ updatedHero: hero }))));
+  actions = this.factory.create({
+    nameUpdated: (e: Event) => (e.target as HTMLInputElement).value,
+  });
 
-    this.state.connect(
+  private state = rxState<{ updatedHero: Hero }>(({ connect }) => {
+    connect(this.hero$.pipe(map((hero) => ({ updatedHero: hero }))));
+
+    connect(
       'updatedHero',
       this.actions.nameUpdated$,
       (state, name) => ({
@@ -68,7 +73,9 @@ export class HeroDetailComponent {
         name,
       })
     );
+  });
 
+  private effects = rxEffects(({ register }) => {
     const saveEffect$ = this.actions.save$.pipe(
       withLatestFrom(this.state.$),
       mergeMap(([, state]) => this.heroService.updateHero(state.updatedHero))
@@ -76,7 +83,17 @@ export class HeroDetailComponent {
 
     const backEffect$ = merge(this.actions.goBack$, saveEffect$);
 
-    this.effects.register(backEffect$, () => this.location.back());
+    register(backEffect$, () => this.location.back());
+  });
+
+  name$ = this.state.select('updatedHero', 'name');
+
+  constructor(
+    private route: ActivatedRoute,
+    private heroService: HeroService,
+    private location: Location,
+    private factory: RxActionFactory<DetailActions>
+  ) {
   }
 }
 

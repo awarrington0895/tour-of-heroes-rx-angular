@@ -1,5 +1,5 @@
 import { AsyncPipe, NgForOf } from '@angular/common';
-import { ChangeDetectionStrategy, Component, OnInit } from '@angular/core';
+import { ChangeDetectionStrategy, Component } from '@angular/core';
 import { RouterModule } from '@angular/router';
 
 import { Observable } from 'rxjs';
@@ -20,8 +20,21 @@ type UiActions = {
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [RouterModule, AsyncPipe, NgForOf],
   providers: [RxActionFactory],
-  templateUrl: './hero-search.component.html',
   styleUrls: ['./hero-search.component.css'],
+  template: `
+  <div id="search-component">
+    <label for="search-box">Hero Search</label>
+    <input #searchBox id="search-box" (input)="ui.searchInput($event)" />
+
+    <ul class="search-result">
+      <li *ngFor="let hero of heroes$ | async">
+        <a routerLink="/detail/{{ hero.id }}">
+          {{ hero.name }}
+        </a>
+      </li>
+    </ul>
+  </div>
+  `
 })
 export class HeroSearchComponent {
   ui = this.factory.create({
