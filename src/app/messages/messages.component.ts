@@ -7,11 +7,22 @@ import { MessageService } from '../message.service';
   selector: 'app-messages',
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [NgForOf, NgIf, AsyncPipe],
-  templateUrl: './messages.component.html',
   styleUrls: ['./messages.component.css'],
+  template: `
+  @if (messageService.messages$ | async; as messages) {
+    <h2>Messages</h2>
+    <button type="button" class="clear" (click)="messageService.clear()">
+      Clear messages
+    </button>
+
+    @for (message of messages; track $index) {
+      <div>{{message}}</div>
+    }
+  }
+  `
 })
 export class MessagesComponent {
-  constructor(public messageService: MessageService) {}
+  constructor(public messageService: MessageService) { }
 }
 
 /*
